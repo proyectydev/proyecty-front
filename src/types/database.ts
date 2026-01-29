@@ -33,8 +33,12 @@ export interface Database {
           updated_at: string
           created_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['users']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Insert: Partial<Database['public']['Tables']['users']['Row']> & {
+          email: string
+          full_name: string
+          user_type: 'investor' | 'borrower' | 'both' | 'admin'
+        }
+        Update: Partial<Database['public']['Tables']['users']['Row']>
       }
       properties: {
         Row: {
@@ -56,8 +60,14 @@ export interface Database {
           updated_at: string
           created_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['properties']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['properties']['Insert']>
+        Insert: Partial<Database['public']['Tables']['properties']['Row']> & {
+          property_name: string
+          property_type: string
+          address: string
+          city: string
+          department: string
+        }
+        Update: Partial<Database['public']['Tables']['properties']['Row']>
       }
       loans: {
         Row: {
@@ -89,8 +99,14 @@ export interface Database {
           updated_at: string
           created_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['loans']['Row'], 'id' | 'created_at' | 'updated_at' | 'monthly_interest_rate'>
-        Update: Partial<Database['public']['Tables']['loans']['Insert']>
+        Insert: Partial<Database['public']['Tables']['loans']['Row']> & {
+          borrower_id: string
+          property_id: string
+          requested_amount: number
+          annual_interest_rate: number
+          term_months: number
+        }
+        Update: Partial<Database['public']['Tables']['loans']['Row']>
       }
       investments: {
         Row: {
@@ -109,8 +125,12 @@ export interface Database {
           updated_at: string
           created_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['investments']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['investments']['Insert']>
+        Insert: Partial<Database['public']['Tables']['investments']['Row']> & {
+          loan_id: string
+          investor_id: string
+          committed_amount: number
+        }
+        Update: Partial<Database['public']['Tables']['investments']['Row']>
       }
       transactions: {
         Row: {
@@ -140,8 +160,11 @@ export interface Database {
           edited_at: string | null
           edited_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['transactions']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['transactions']['Insert']>
+        Insert: Partial<Database['public']['Tables']['transactions']['Row']> & {
+          transaction_type: 'investor_deposit' | 'loan_disbursement' | 'interest_payment' | 'principal_payment' | 'full_payment' | 'late_fee' | 'investor_return' | 'capital_return' | 'proyecty_commission' | 'adjustment' | 'refund'
+          amount: number
+        }
+        Update: Partial<Database['public']['Tables']['transactions']['Row']>
       }
       audit_log: {
         Row: {
@@ -157,8 +180,12 @@ export interface Database {
           user_agent: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['audit_log']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['audit_log']['Insert']>
+        Insert: Partial<Database['public']['Tables']['audit_log']['Row']> & {
+          table_name: string
+          record_id: string
+          action: string
+        }
+        Update: Partial<Database['public']['Tables']['audit_log']['Row']>
       }
       system_config: {
         Row: {
@@ -169,8 +196,11 @@ export interface Database {
           updated_at: string
           updated_by: string | null
         }
-        Insert: Omit<Database['public']['Tables']['system_config']['Row'], 'id' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['system_config']['Insert']>
+        Insert: Partial<Database['public']['Tables']['system_config']['Row']> & {
+          config_key: string
+          config_value: string
+        }
+        Update: Partial<Database['public']['Tables']['system_config']['Row']>
       }
     }
     Views: {
@@ -195,6 +225,20 @@ export interface Database {
           current_portfolio_value: number
           total_returns_received: number
         }
+      }
+    }
+    Functions: {
+      generate_loan_code: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      generate_transaction_code: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      recalculate_loan_balance: {
+        Args: { p_loan_id: string }
+        Returns: void
       }
     }
   }

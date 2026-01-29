@@ -1,19 +1,27 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Search, Eye, Edit, UserPlus } from 'lucide-react'
+import { Search, Eye, Edit, UserPlus, Trash2, MoreVertical, RefreshCw, Mail } from 'lucide-react'
+import { InviteUserModal, EditUserModal, DeleteConfirmModal } from '../../components/modals'
 import type { User } from '../../types/database'
 
 const userTypeLabels: Record<string, { label: string; class: string }> = {
   admin: { label: 'Administrador', class: 'badge-info' },
   investor: { label: 'Inversionista', class: 'badge-success' },
   borrower: { label: 'Deudor', class: 'badge-warning' },
-  both: { label: 'Inv/Deudor', class: 'badge-gray' },
+  both: { label: 'Inv/Deudor', class: 'badge-purple' },
 }
 
 export function UsersPage() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showEditUserModal, setShowEditUserModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [changingType, setChangingType] = useState<string | null>(null)
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users', search, typeFilter],
@@ -38,6 +46,53 @@ export function UsersPage() {
     },
   })
 
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setShowEditUserModal(true)
+    setOpenMenuId(null)
+  }
+
+  const handleDeleteClick = (user: User) => {
+    setSelectedUser(user)
+    setShowDeleteModal(true)
+    setOpenMenuId(null)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return
+    
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', selectedUser.id)
+    
+    if (error) throw error
+    
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+  }
+
+  // Cambiar tipo de usuario (para permitir que un cliente también sea inversionista)
+  const handleChangeUserType = async (userId: string, newType: string) => {
+    setChangingType(userId)
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ user_type: newType })
+        .eq('id', userId)
+      
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ['users'] })
+      }
+    } finally {
+      setChangingType(null)
+      setOpenMenuId(null)
+    }
+  }
+
+  const toggleMenu = (userId: string) => {
+    setOpenMenuId(openMenuId === userId ? null : userId)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -48,9 +103,9 @@ export function UsersPage() {
             Gestiona inversionistas, deudores y administradores
           </p>
         </div>
-        <button className="btn-primary">
-          <UserPlus className="w-5 h-5 mr-2" />
-          Nuevo Usuario
+        <button onClick={() => setShowInviteModal(true)} className="btn-primary">
+          <Mail className="w-5 h-5 mr-2" />
+          Invitar Usuario
         </button>
       </div>
 
@@ -82,8 +137,8 @@ export function UsersPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
+      {/* Table - Desktop */}
+      <div className="card overflow-hidden hidden md:block">
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -138,13 +193,85 @@ export function UsersPage() {
                       )}
                     </td>
                     <td>
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Ver">
-                          <Eye className="w-4 h-4 text-gray-500" />
+                      <div className="relative">
+                        <button 
+                          onClick={() => toggleMenu(user.id)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-500" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Editar">
-                          <Edit className="w-4 h-4 text-gray-500" />
-                        </button>
+                        
+                        {openMenuId === user.id && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-10" 
+                              onClick={() => setOpenMenuId(null)}
+                            />
+                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border z-20">
+                              <button
+                                onClick={() => handleEditUser(user)}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 first:rounded-t-lg"
+                              >
+                                <Edit className="w-4 h-4" />
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleEditUser(user)}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Ver detalles
+                              </button>
+                              {/* Opciones para cambiar tipo de usuario */}
+                              {user.user_type !== 'admin' && (
+                                <>
+                                  <hr />
+                                  <div className="px-4 py-2 text-xs text-gray-500 font-medium">
+                                    Cambiar a:
+                                  </div>
+                                  {user.user_type !== 'both' && (
+                                    <button
+                                      onClick={() => handleChangeUserType(user.id, 'both')}
+                                      disabled={changingType === user.id}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <RefreshCw className={`w-4 h-4 ${changingType === user.id ? 'animate-spin' : ''}`} />
+                                      Cliente + Inversionista
+                                    </button>
+                                  )}
+                                  {user.user_type === 'borrower' && (
+                                    <button
+                                      onClick={() => handleChangeUserType(user.id, 'investor')}
+                                      disabled={changingType === user.id}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <RefreshCw className={`w-4 h-4 ${changingType === user.id ? 'animate-spin' : ''}`} />
+                                      Solo Inversionista
+                                    </button>
+                                  )}
+                                  {user.user_type === 'investor' && (
+                                    <button
+                                      onClick={() => handleChangeUserType(user.id, 'borrower')}
+                                      disabled={changingType === user.id}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <RefreshCw className={`w-4 h-4 ${changingType === user.id ? 'animate-spin' : ''}`} />
+                                      Solo Cliente
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                              <hr />
+                              <button
+                                onClick={() => handleDeleteClick(user)}
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 last:rounded-b-lg"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Eliminar
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -156,9 +283,105 @@ export function UsersPage() {
           <div className="p-8 text-center">
             <UserPlus className="w-12 h-12 text-gray-300 mx-auto" />
             <p className="text-gray-500 mt-4">No hay usuarios registrados</p>
+            <button onClick={() => setShowInviteModal(true)} className="btn-primary mt-4">
+              <Mail className="w-5 h-5 mr-2" />
+              Invitar primer usuario
+            </button>
           </div>
         )}
       </div>
+
+      {/* Cards - Mobile */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-500 mt-4">Cargando usuarios...</p>
+          </div>
+        ) : users && users.length > 0 ? (
+          users.map((user) => (
+            <div key={user.id} className="card">
+              <div className="card-body p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-primary-600 font-medium">
+                        {user.full_name.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{user.full_name}</p>
+                      <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`${userTypeLabels[user.user_type]?.class || 'badge-gray'} text-xs`}>
+                      {userTypeLabels[user.user_type]?.label || user.user_type}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    {user.phone || 'Sin teléfono'}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditUser(user)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                    >
+                      <Edit className="w-4 h-4 text-gray-500" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(user)}
+                      className="p-2 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="card">
+            <div className="card-body p-8 text-center">
+              <UserPlus className="w-12 h-12 text-gray-300 mx-auto" />
+              <p className="text-gray-500 mt-4">No hay usuarios registrados</p>
+              <button onClick={() => setShowInviteModal(true)} className="btn-primary mt-4">
+                <Mail className="w-5 h-5 mr-2" />
+                Invitar primer usuario
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <InviteUserModal 
+        isOpen={showInviteModal} 
+        onClose={() => setShowInviteModal(false)} 
+      />
+
+      <EditUserModal
+        isOpen={showEditUserModal}
+        onClose={() => {
+          setShowEditUserModal(false)
+          setSelectedUser(null)
+        }}
+        user={selectedUser}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false)
+          setSelectedUser(null)
+        }}
+        onConfirm={handleDeleteUser}
+        title="Eliminar Usuario"
+        message="¿Estás seguro de que deseas eliminar este usuario? Se eliminarán todos sus datos."
+        itemName={selectedUser?.full_name}
+      />
     </div>
   )
 }

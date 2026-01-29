@@ -9,6 +9,9 @@ import { AuthLayout } from './layouts/AuthLayout'
 
 // Pages - Auth
 import { LoginPage } from './pages/auth/LoginPage'
+import { RegisterPage } from './pages/auth/RegisterPage'
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 
 // Pages - Admin
 import { DashboardPage } from './pages/admin/DashboardPage'
@@ -16,6 +19,8 @@ import { LoansPage } from './pages/admin/LoansPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { TransactionsPage } from './pages/admin/TransactionsPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
+import { PropertiesPage } from './pages/admin/PropertiesPage'
+import { MortgageDetailPage } from './pages/admin/MortgageDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +40,9 @@ function App() {
             {/* Auth Routes */}
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/registro" element={<RegisterPage />} />
+              <Route path="/recuperar-contrasena" element={<ForgotPasswordPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             </Route>
 
             {/* Admin Routes */}
@@ -47,6 +55,8 @@ function App() {
               }
             >
               <Route index element={<DashboardPage />} />
+              <Route path="propiedades" element={<PropertiesPage />} />
+              <Route path="hipotecas/:id" element={<MortgageDetailPage />} />
               <Route path="loans" element={<LoansPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="transactions" element={<TransactionsPage />} />

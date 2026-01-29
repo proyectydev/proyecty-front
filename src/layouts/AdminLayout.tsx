@@ -9,12 +9,14 @@ import {
   LogOut,
   Menu,
   X,
+  Building2,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Préstamos', href: '/admin/loans', icon: FileText },
+  { name: 'Propiedades', href: '/admin/propiedades', icon: Building2 },
+  { name: 'Hipotecas', href: '/admin/loans', icon: FileText },
   { name: 'Usuarios', href: '/admin/users', icon: Users },
   { name: 'Transacciones', href: '/admin/transactions', icon: DollarSign },
   { name: 'Reportes', href: '/admin/reports', icon: BarChart3 },

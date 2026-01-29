@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
@@ -77,9 +77,17 @@ export function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="password" className="label">
-            Contraseña
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="password" className="label mb-0">
+              Contraseña
+            </label>
+            <Link 
+              to="/recuperar-contrasena" 
+              className="text-sm text-primary-600 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
           <div className="relative">
             <input
               id="password"
@@ -118,6 +126,13 @@ export function LoginPage() {
       </form>
 
       <p className="text-center text-sm text-gray-500 mt-6">
+        ¿No tienes cuenta?{' '}
+        <Link to="/registro" className="text-primary-600 hover:underline font-medium">
+          Regístrate aquí
+        </Link>
+      </p>
+
+      <p className="text-center text-sm text-gray-400 mt-4">
         © 2026 Proyecty Inmobiliaria. Cúcuta, Colombia.
       </p>
     </div>

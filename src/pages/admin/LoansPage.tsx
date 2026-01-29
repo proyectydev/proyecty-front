@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Plus, Search, Filter, Eye, Edit, FileText } from 'lucide-react'
+import { Plus, Search, Filter, Eye, Edit, FileText, DollarSign } from 'lucide-react'
 import { formatCurrency } from '../../utils/format'
-import type { LoanSummary } from '../../types/database'
+import { NewLoanModal, NewTransactionModal } from '../../components/modals'
+import type { LoanSummary, Loan } from '../../types/database'
 
 const statusLabels: Record<string, { label: string; class: string }> = {
   draft: { label: 'Borrador', class: 'badge-gray' },
@@ -18,8 +20,12 @@ const statusLabels: Record<string, { label: string; class: string }> = {
 }
 
 export function LoansPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [showNewLoanModal, setShowNewLoanModal] = useState(false)
+  const [showTransactionModal, setShowTransactionModal] = useState(false)
+  const [selectedLoanForTransaction, setSelectedLoanForTransaction] = useState<Loan | null>(null)
 
   const { data: loans, isLoading } = useQuery({
     queryKey: ['loans', search, statusFilter],
@@ -49,14 +55,14 @@ export function LoansPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Préstamos</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Hipotecas</h1>
           <p className="text-gray-500 mt-1">
-            Gestiona los préstamos hipotecarios del sistema
+            Gestiona las hipotecas del sistema
           </p>
         </div>
-        <button className="btn-primary">
+        <button onClick={() => setShowNewLoanModal(true)} className="btn-primary">
           <Plus className="w-5 h-5 mr-2" />
-          Nuevo Préstamo
+          Nueva Hipoteca
         </button>
       </div>
 
@@ -99,7 +105,7 @@ export function LoansPage() {
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-gray-500 mt-4">Cargando préstamos...</p>
+            <p className="text-gray-500 mt-4">Cargando hipotecas...</p>
           </div>
         ) : loans && loans.length > 0 ? (
           <div className="overflow-x-auto">
@@ -107,17 +113,17 @@ export function LoansPage() {
               <thead>
                 <tr>
                   <th>Código</th>
-                  <th>Deudor</th>
+                  <th>Cliente</th>
                   <th>Monto</th>
                   <th>Saldo</th>
-                  <th>Tasa</th>
+                  <th>Tasa Mensual</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loans.map((loan) => (
-                  <tr key={loan.id}>
+                  <tr key={loan.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/admin/hipotecas/${loan.id}`)}>
                     <td>
                       <span className="font-medium text-primary-600">
                         {loan.loan_code}
@@ -131,7 +137,7 @@ export function LoansPage() {
                     </td>
                     <td>{formatCurrency(loan.disbursed_amount || loan.requested_amount)}</td>
                     <td>{formatCurrency(loan.current_balance)}</td>
-                    <td>{loan.annual_interest_rate}%</td>
+                    <td>{(loan.annual_interest_rate / 12).toFixed(2)}%</td>
                     <td>
                       <span className={statusLabels[loan.status]?.class || 'badge-gray'}>
                         {statusLabels[loan.status]?.label || loan.status}
@@ -139,11 +145,30 @@ export function LoansPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Ver">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/hipotecas/${loan.id}`) }}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                          title="Ver Detalle"
+                        >
                           <Eye className="w-4 h-4 text-gray-500" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Editar">
+                        <button 
+                          onClick={(e) => { e.stopPropagation() }}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                          title="Editar"
+                        >
                           <Edit className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedLoanForTransaction(loan as unknown as Loan)
+                            setShowTransactionModal(true)
+                          }}
+                          className="p-2 hover:bg-green-100 rounded-lg transition-colors" 
+                          title="Registrar Pago"
+                        >
+                          <DollarSign className="w-4 h-4 text-green-600" />
                         </button>
                       </div>
                     </td>
@@ -155,14 +180,28 @@ export function LoansPage() {
         ) : (
           <div className="p-8 text-center">
             <FileText className="w-12 h-12 text-gray-300 mx-auto" />
-            <p className="text-gray-500 mt-4">No hay préstamos registrados</p>
-            <button className="btn-primary mt-4">
+            <p className="text-gray-500 mt-4">No hay hipotecas registradas</p>
+            <button onClick={() => setShowNewLoanModal(true)} className="btn-primary mt-4">
               <Plus className="w-5 h-5 mr-2" />
-              Crear primer préstamo
+              Crear primera hipoteca
             </button>
           </div>
         )}
       </div>
+
+      {/* Modales */}
+      <NewLoanModal 
+        isOpen={showNewLoanModal} 
+        onClose={() => setShowNewLoanModal(false)} 
+      />
+      <NewTransactionModal 
+        isOpen={showTransactionModal} 
+        onClose={() => {
+          setShowTransactionModal(false)
+          setSelectedLoanForTransaction(null)
+        }}
+        preselectedLoan={selectedLoanForTransaction}
+      />
     </div>
   )
 }

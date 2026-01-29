@@ -31,3 +31,5 @@ dist-ssr
 # Documentation with sensitive data
 DOCUMENTACION.md
 ../DOCUMENTACION.md
+
+supabase_property_images_setup.sql

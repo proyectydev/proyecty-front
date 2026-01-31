@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { X, DollarSign, FileText } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, DollarSign, FileText, Upload, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatCurrency } from '../../utils/format'
@@ -17,6 +17,9 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     loan_id: preselectedLoan?.id || '',
@@ -50,10 +53,14 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
           loan_code, 
           requested_amount,
           current_balance,
+          annual_interest_rate,
+          monthly_interest_rate,
+          proyecty_commission_rate,
+          investor_return_rate,
           status,
           borrower:users!loans_borrower_id_fkey(id, full_name)
         `)
-        .not('status', 'in', '("cancelled","paid_off")')
+        .not('status', 'in', '("cancelled","paid_off","deleted")')
         .order('loan_code')
       
       // Transformar borrower de array a objeto único
@@ -65,6 +72,10 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
         loan_code: string
         requested_amount: number
         current_balance: number
+        annual_interest_rate: number
+        monthly_interest_rate: number
+        proyecty_commission_rate: number
+        investor_return_rate: number
         status: string
         borrower: { id: string; full_name: string } | null
       }[]
@@ -89,15 +100,10 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
   const selectedLoan = loans?.find(l => l.id === formData.loan_id)
 
   const transactionTypes: { value: TransactionType; label: string; description: string }[] = [
-    { value: 'investor_deposit', label: 'Depósito Inversión', description: 'Aporte de un inversionista al préstamo' },
+    { value: 'investor_deposit', label: 'Entrada de Inversión', description: 'Aporte de un inversionista al préstamo' },
     { value: 'loan_disbursement', label: 'Desembolso', description: 'Entrega del dinero al deudor' },
-    { value: 'interest_payment', label: 'Pago de Intereses', description: 'Pago mensual de intereses' },
-    { value: 'principal_payment', label: 'Abono a Capital', description: 'Abono al capital del préstamo' },
-    { value: 'full_payment', label: 'Pago Total', description: 'Pago de cuota completa (capital + interés)' },
-    { value: 'late_fee', label: 'Mora', description: 'Pago por intereses de mora' },
-    { value: 'investor_return', label: 'Rendimiento Inversionista', description: 'Pago de rendimientos a inversionista' },
-    { value: 'capital_return', label: 'Devolución Capital', description: 'Devolución de capital a inversionista' },
-    { value: 'proyecty_commission', label: 'Comisión Proyecty', description: 'Comisión para Proyecty' },
+    { value: 'interest_payment', label: 'Recaudo de Intereses', description: 'Recaudo mensual de intereses' },
+    { value: 'principal_payment', label: 'Recaudo de Capital', description: 'Abono/recaudo de capital del préstamo' },
     { value: 'adjustment', label: 'Ajuste', description: 'Ajuste manual de saldo' },
     { value: 'refund', label: 'Reembolso', description: 'Devolución de dinero' },
   ]
@@ -117,6 +123,75 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
       ...prev,
       [name]: value
     }))
+  }
+
+  // Manejar selección de archivo de comprobante
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+      if (!validTypes.includes(file.type)) {
+        setError('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WebP) o PDF.')
+        return
+      }
+      // Validar tamaño (máx 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('El archivo es demasiado grande. Máximo 5MB.')
+        return
+      }
+      
+      setReceiptFile(file)
+      setError('')
+      
+      // Crear preview si es imagen
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setReceiptPreview(e.target?.result as string)
+        }
+        reader.readAsDataURL(file)
+      } else {
+        setReceiptPreview(null) // Es PDF, no hay preview
+      }
+    }
+  }
+
+  // Eliminar archivo seleccionado
+  const handleRemoveFile = () => {
+    setReceiptFile(null)
+    setReceiptPreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Subir comprobante a Supabase Storage
+  const uploadReceipt = async (txCode: string): Promise<string | null> => {
+    if (!receiptFile) return null
+    
+    const fileExt = receiptFile.name.split('.').pop()
+    const fileName = `${txCode}.${fileExt}`
+    const filePath = `receipts/${fileName}`
+    
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, receiptFile, {
+        cacheControl: '3600',
+        upsert: true
+      })
+    
+    if (uploadError) {
+      console.error('Error uploading receipt:', uploadError)
+      return null
+    }
+    
+    // Obtener URL pública
+    const { data } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath)
+    
+    return data.publicUrl
   }
 
   // Auto-fill from/to users based on transaction type
@@ -158,41 +233,157 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
         throw new Error('El monto debe ser mayor a 0')
       }
 
-      // Generar código de transacción
-      const { data: txCode } = await supabase.rpc('generate_transaction_code')
+      const amount = parseFloat(formData.amount)
+      const transactionType = formData.transaction_type
 
+      // Generar código de transacción único
+      const generateTxCode = () => {
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+        return `TX-${year}${month}${day}-${random}`
+      }
+
+      // Calcular porciones según tipo de transacción
+      let interestPortion = 0
+      let principalPortion = 0
+      
+      if (transactionType === 'interest_payment') {
+        interestPortion = amount
+      } else if (transactionType === 'principal_payment') {
+        principalPortion = amount
+      }
+
+      // Generar código único para la transacción principal
+      const mainTxCode = generateTxCode()
+      
+      // Subir comprobante si existe
+      const receiptUrl = await uploadReceipt(mainTxCode)
+
+      // Crear transacción principal
       const { error: insertError } = await supabase
         .from('transactions')
         .insert([{
-          transaction_code: txCode,
+          transaction_code: mainTxCode,
           loan_id: formData.loan_id,
           user_id: formData.from_user_id || null,
-          transaction_type: formData.transaction_type as 'investor_deposit' | 'loan_disbursement' | 'interest_payment' | 'principal_payment' | 'full_payment' | 'late_fee' | 'investor_return' | 'capital_return' | 'proyecty_commission' | 'adjustment' | 'refund',
-          amount: parseFloat(formData.amount),
-          interest_portion: 0,
-          principal_portion: formData.transaction_type === 'principal_payment' ? parseFloat(formData.amount) : 0,
+          transaction_type: transactionType as 'investor_deposit' | 'loan_disbursement' | 'interest_payment' | 'principal_payment' | 'full_payment' | 'late_fee' | 'investor_return' | 'capital_return' | 'proyecty_commission' | 'adjustment' | 'refund',
+          amount: amount,
+          interest_portion: interestPortion,
+          principal_portion: principalPortion,
           commission_portion: 0,
           payment_method: formData.payment_method,
           payment_reference: formData.reference_number || null,
           description: formData.notes || null,
+          receipt_url: receiptUrl,
           status: 'completed',
           payment_date: new Date().toISOString(),
         }])
 
       if (insertError) throw insertError
 
-      // Recalcular saldo del préstamo si es pago
-      if (['principal_payment', 'full_payment'].includes(formData.transaction_type)) {
-        await supabase.rpc('recalculate_loan_balance', { p_loan_id: formData.loan_id })
+      // === DISTRIBUCIÓN AUTOMÁTICA ===
+      // Si es un recaudo de intereses, crear automáticamente las transacciones de distribución
+      if (transactionType === 'interest_payment' && selectedLoan) {
+        const totalRate = selectedLoan.monthly_interest_rate || (selectedLoan.annual_interest_rate / 12)
+        const proyectyRate = selectedLoan.proyecty_commission_rate || 0
+        const investorRate = selectedLoan.investor_return_rate || 0
+        
+        // Calcular distribución proporcional
+        // Si totalRate = 2.4%, proyectyRate = 0.5%, investorRate = 1.9%
+        // Entonces de $1,000,000: Proyecty = (0.5/2.4)*1M, Investor = (1.9/2.4)*1M
+        
+        if (totalRate > 0) {
+          const proyectyAmount = Math.round((proyectyRate / totalRate) * amount)
+          const investorAmount = Math.round((investorRate / totalRate) * amount)
+          
+          // Crear transacción de Comisión Proyecty
+          if (proyectyAmount > 0) {
+            await supabase
+              .from('transactions')
+              .insert([{
+                transaction_code: generateTxCode(),
+                loan_id: formData.loan_id,
+                transaction_type: 'proyecty_commission',
+                amount: proyectyAmount,
+                interest_portion: 0,
+                principal_portion: 0,
+                commission_portion: proyectyAmount,
+                payment_method: 'internal',
+                description: `Comisión automática - ${((proyectyRate / totalRate) * 100).toFixed(1)}% del recaudo`,
+                status: 'completed',
+                payment_date: new Date().toISOString(),
+              }])
+          }
+          
+          // Crear transacción de Rendimiento Inversionista
+          if (investorAmount > 0) {
+            await supabase
+              .from('transactions')
+              .insert([{
+                transaction_code: generateTxCode(),
+                loan_id: formData.loan_id,
+                transaction_type: 'investor_return',
+                amount: investorAmount,
+                interest_portion: 0,
+                principal_portion: 0,
+                commission_portion: 0,
+                payment_method: 'internal',
+                description: `Rendimiento automático - ${((investorRate / totalRate) * 100).toFixed(1)}% del recaudo`,
+                status: 'completed',
+                payment_date: new Date().toISOString(),
+              }])
+          }
+        }
+      }
+
+      // Actualizar saldo del préstamo según tipo de transacción
+      if (selectedLoan) {
+        let newBalance = selectedLoan.current_balance || selectedLoan.requested_amount
+        
+        if (transactionType === 'loan_disbursement') {
+          // Cuando se desembolsa, el saldo es el monto total prestado
+          newBalance = selectedLoan.requested_amount
+          
+          await supabase
+            .from('loans')
+            .update({ 
+              current_balance: newBalance,
+              disbursed_amount: amount,
+              status: 'disbursed'
+            })
+            .eq('id', formData.loan_id)
+            
+        } else if (transactionType === 'principal_payment') {
+          // Cuando se recauda capital, se reduce el saldo
+          newBalance = Math.max(0, newBalance - principalPortion)
+          
+          const updateData: { current_balance: number; status?: string } = { 
+            current_balance: newBalance 
+          }
+          
+          // Si el saldo llega a 0, marcar como pagado
+          if (newBalance === 0) {
+            updateData.status = 'paid_off'
+          }
+          
+          await supabase
+            .from('loans')
+            .update(updateData)
+            .eq('id', formData.loan_id)
+        }
       }
 
       // Refrescar listas
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['loans'] })
       queryClient.invalidateQueries({ queryKey: ['loans-active'] })
+      queryClient.invalidateQueries({ queryKey: ['period-transactions'] })
       
       onClose()
-      // Reset form
+      // Reset form y archivo
       setFormData({
         loan_id: '',
         transaction_type: 'interest_payment',
@@ -203,6 +394,7 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
         reference_number: '',
         notes: '',
       })
+      handleRemoveFile()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrar transacción')
     } finally {
@@ -254,7 +446,13 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
                 <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
                   <p><span className="font-medium">Deudor:</span> {selectedLoan.borrower?.full_name}</p>
                   <p><span className="font-medium">Monto Original:</span> {formatCurrency(selectedLoan.requested_amount)}</p>
-                  <p><span className="font-medium">Saldo Actual:</span> {formatCurrency(selectedLoan.current_balance || 0)}</p>
+                  <p>
+                    <span className="font-medium">Saldo Pendiente:</span>{' '}
+                    <span className={selectedLoan.current_balance > 0 ? 'text-red-600' : 'text-green-600'}>
+                      {formatCurrency(selectedLoan.current_balance || 0)}
+                    </span>
+                    <span className="text-xs text-gray-400 ml-1">(lo que debe el cliente)</span>
+                  </p>
                   <p><span className="font-medium">Estado:</span> {selectedLoan.status}</p>
                 </div>
               )}
@@ -280,6 +478,39 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
                 {transactionTypes.find(t => t.value === formData.transaction_type)?.description}
               </p>
             </div>
+
+            {/* Calculadora de Intereses - Solo para pago de intereses */}
+            {selectedLoan && formData.transaction_type === 'interest_payment' && selectedLoan.current_balance > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="text-sm font-medium text-blue-800 mb-3">💡 Cálculo de Intereses Sugerido</p>
+                <div className="grid grid-cols-3 gap-3 text-center mb-3">
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-xs text-gray-500">Saldo en Deuda</p>
+                    <p className="font-semibold text-sm">{formatCurrency(selectedLoan.current_balance)}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-xs text-gray-500">Tasa Mensual</p>
+                    <p className="font-semibold text-sm">{(selectedLoan.annual_interest_rate / 12).toFixed(2)}%</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-xs text-gray-500">Interés a Pagar</p>
+                    <p className="font-bold text-sm text-green-600">
+                      {formatCurrency(Math.round(selectedLoan.current_balance * (selectedLoan.annual_interest_rate / 12 / 100)))}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const interest = Math.round(selectedLoan.current_balance * (selectedLoan.annual_interest_rate / 12 / 100))
+                    setFormData(prev => ({ ...prev, amount: interest.toString() }))
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Aplicar monto sugerido
+                </button>
+              </div>
+            )}
 
             {/* Monto y Método de Pago */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -385,6 +616,63 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
                 className="input min-h-[80px]"
                 placeholder="Observaciones sobre esta transacción..."
               />
+            </div>
+
+            {/* Comprobante */}
+            <div>
+              <label className="label">Comprobante (opcional)</label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="hidden"
+              />
+              
+              {!receiptFile ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                >
+                  <div className="flex flex-col items-center gap-2 text-gray-500">
+                    <Upload className="w-8 h-8" />
+                    <span className="text-sm">Click para subir comprobante</span>
+                    <span className="text-xs text-gray-400">JPG, PNG, WebP o PDF (máx. 5MB)</span>
+                  </div>
+                </button>
+              ) : (
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    {receiptPreview ? (
+                      <img 
+                        src={receiptPreview} 
+                        alt="Preview" 
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center">
+                        <FileText className="w-8 h-8 text-red-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">
+                        {receiptFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(receiptFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="p-2 text-red-500 hover:bg-red-100 rounded-lg"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Buttons */}

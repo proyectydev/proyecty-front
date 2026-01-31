@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { 
   ArrowLeft, Building2, User, DollarSign, 
   Percent, Users, Plus, FileText, Download, Edit,
-  Clock, TrendingUp
+  Clock, TrendingUp, MoreVertical, Trash2
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { NewTransactionModal } from '../../components/modals'
@@ -26,6 +26,18 @@ const loanStatusConfig: Record<string, { label: string; color: string; bgColor: 
   cancelled: { label: 'Cancelada', color: 'text-gray-500', bgColor: 'bg-gray-100' },
 }
 
+// Tipos de transacción en español
+const transactionTypeLabels: Record<string, string> = {
+  investor_deposit: 'Entrada de Inversión',
+  loan_disbursement: 'Desembolso',
+  interest_payment: 'Recaudo de Intereses',
+  principal_payment: 'Recaudo de Capital',
+  investor_return: 'Rendimiento Inversionista',
+  proyecty_commission: 'Comisión Proyecty',
+  adjustment: 'Ajuste',
+  refund: 'Reembolso',
+}
+
 export function MortgageDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -33,6 +45,21 @@ export function MortgageDetailPage() {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [showAddInvestorModal, setShowAddInvestorModal] = useState(false)
   const [showChangeStatusModal, setShowChangeStatusModal] = useState(false)
+  
+  // Estados para editar/eliminar inversión
+  const [investmentMenuOpen, setInvestmentMenuOpen] = useState<string | null>(null)
+  const [showEditInvestmentModal, setShowEditInvestmentModal] = useState(false)
+  const [showDeleteInvestmentModal, setShowDeleteInvestmentModal] = useState(false)
+  const [selectedInvestment, setSelectedInvestment] = useState<{
+    id: string
+    investor_id: string
+    investor_name: string
+    committed_amount: number
+    transferred_amount: number | null
+  } | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [deletingInvestment, setDeletingInvestment] = useState(false)
+  const [savingInvestment, setSavingInvestment] = useState(false)
 
   // Obtener datos de la hipoteca
   const { data: loan, isLoading } = useQuery({
@@ -123,6 +150,61 @@ export function MortgageDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['loan-detail', id] })
       queryClient.invalidateQueries({ queryKey: ['loans'] })
       setShowChangeStatusModal(false)
+    }
+  }
+
+  // Eliminar inversión
+  async function handleDeleteInvestment() {
+    if (!selectedInvestment) return
+    setDeletingInvestment(true)
+    
+    try {
+      const { error } = await supabase
+        .from('investments')
+        .delete()
+        .eq('id', selectedInvestment.id)
+      
+      if (error) throw error
+      
+      queryClient.invalidateQueries({ queryKey: ['investments', id] })
+      setShowDeleteInvestmentModal(false)
+      setSelectedInvestment(null)
+    } catch (err) {
+      console.error('Error eliminando inversión:', err)
+    } finally {
+      setDeletingInvestment(false)
+    }
+  }
+
+  // Editar inversión
+  async function handleEditInvestment() {
+    if (!selectedInvestment || !editAmount) return
+    setSavingInvestment(true)
+    
+    try {
+      const newAmount = parseFloat(editAmount.replace(/[,.]/g, ''))
+      if (isNaN(newAmount) || newAmount <= 0) {
+        throw new Error('Monto inválido')
+      }
+      
+      const { error } = await supabase
+        .from('investments')
+        .update({ 
+          committed_amount: newAmount,
+          transferred_amount: newAmount // También actualizar el transferido
+        })
+        .eq('id', selectedInvestment.id)
+      
+      if (error) throw error
+      
+      queryClient.invalidateQueries({ queryKey: ['investments', id] })
+      setShowEditInvestmentModal(false)
+      setSelectedInvestment(null)
+      setEditAmount('')
+    } catch (err) {
+      console.error('Error editando inversión:', err)
+    } finally {
+      setSavingInvestment(false)
     }
   }
 
@@ -305,7 +387,7 @@ export function MortgageDetailPage() {
                     const percentage = ((inv.committed_amount / loan.requested_amount) * 100).toFixed(1)
                     
                     return (
-                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg gap-3">
+                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg gap-3 relative">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-primary-600 font-medium">
@@ -317,9 +399,59 @@ export function MortgageDetailPage() {
                             <p className="text-sm text-gray-500 truncate">{investorData?.email || 'Sin email'}</p>
                           </div>
                         </div>
-                        <div className="text-left sm:text-right ml-13 sm:ml-0">
-                          <p className="font-semibold">{formatCurrency(inv.committed_amount)}</p>
-                          <p className="text-sm text-gray-500">{percentage}% del total</p>
+                        <div className="flex items-center gap-3">
+                          <div className="text-left sm:text-right">
+                            <p className="font-semibold">{formatCurrency(inv.committed_amount)}</p>
+                            <p className="text-sm text-gray-500">{percentage}% del total</p>
+                          </div>
+                          {/* Menú de acciones */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setInvestmentMenuOpen(investmentMenuOpen === inv.id ? null : inv.id)}
+                              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                              <MoreVertical className="w-4 h-4 text-gray-500" />
+                            </button>
+                            {investmentMenuOpen === inv.id && (
+                              <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border py-1 z-10">
+                                <button
+                                  onClick={() => {
+                                    setSelectedInvestment({
+                                      id: inv.id,
+                                      investor_id: investorData?.id || '',
+                                      investor_name: investorData?.full_name || 'Inversionista',
+                                      committed_amount: inv.committed_amount,
+                                      transferred_amount: inv.transferred_amount
+                                    })
+                                    setEditAmount(inv.committed_amount.toString())
+                                    setShowEditInvestmentModal(true)
+                                    setInvestmentMenuOpen(null)
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                  Editar monto
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedInvestment({
+                                      id: inv.id,
+                                      investor_id: investorData?.id || '',
+                                      investor_name: investorData?.full_name || 'Inversionista',
+                                      committed_amount: inv.committed_amount,
+                                      transferred_amount: inv.transferred_amount
+                                    })
+                                    setShowDeleteInvestmentModal(true)
+                                    setInvestmentMenuOpen(null)
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
@@ -359,7 +491,7 @@ export function MortgageDetailPage() {
                   {transactions.slice(0, 10).map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between py-3 border-b last:border-0">
                       <div>
-                        <p className="font-medium text-sm">{tx.transaction_type.replace(/_/g, ' ')}</p>
+                        <p className="font-medium text-sm">{transactionTypeLabels[tx.transaction_type] || tx.transaction_type}</p>
                         <p className="text-xs text-gray-500">{formatDate(tx.payment_date)}</p>
                       </div>
                       <p className={`font-semibold ${
@@ -515,6 +647,112 @@ export function MortgageDetailPage() {
           onClose={() => setShowChangeStatusModal(false)}
           onChangeStatus={changeStatus}
         />
+      )}
+
+      {/* Modal para editar inversión */}
+      {showEditInvestmentModal && selectedInvestment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowEditInvestmentModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Editar Inversión</h2>
+            <p className="text-gray-600 mb-4">
+              Modificar el monto de inversión de <strong>{selectedInvestment.investor_name}</strong>
+            </p>
+            
+            <div className="mb-4">
+              <label className="label">Monto actual</label>
+              <p className="text-lg font-semibold text-gray-500">
+                {formatCurrency(selectedInvestment.committed_amount)}
+              </p>
+            </div>
+            
+            <div className="mb-6">
+              <label className="label">Nuevo monto *</label>
+              <input
+                type="text"
+                value={editAmount}
+                onChange={(e) => {
+                  // Solo permitir números
+                  const value = e.target.value.replace(/[^\d]/g, '')
+                  setEditAmount(value)
+                }}
+                className="input"
+                placeholder="Ej: 5000000"
+              />
+              {editAmount && (
+                <p className="text-sm text-gray-500 mt-1">
+                  {formatCurrency(parseFloat(editAmount) || 0)}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setShowEditInvestmentModal(false)
+                  setSelectedInvestment(null)
+                  setEditAmount('')
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleEditInvestment}
+                disabled={savingInvestment || !editAmount}
+                className="btn-primary flex-1"
+              >
+                {savingInvestment ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+                ) : (
+                  'Guardar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para eliminar inversión */}
+      {showDeleteInvestmentModal && selectedInvestment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowDeleteInvestmentModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-center mb-2">Eliminar Inversión</h2>
+            <p className="text-gray-600 text-center mb-4">
+              ¿Estás seguro de eliminar la inversión de <strong>{selectedInvestment.investor_name}</strong> por <strong>{formatCurrency(selectedInvestment.committed_amount)}</strong>?
+            </p>
+            <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg mb-6">
+              ⚠️ Esta acción recalculará automáticamente el monto total financiado de la hipoteca.
+            </p>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setShowDeleteInvestmentModal(false)
+                  setSelectedInvestment(null)
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleDeleteInvestment}
+                disabled={deletingInvestment}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex-1"
+              >
+                {deletingInvestment ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+                ) : (
+                  'Eliminar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

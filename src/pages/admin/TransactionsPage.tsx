@@ -7,15 +7,12 @@ import { NewTransactionModal } from '../../components/modals'
 import type { Transaction } from '../../types/database'
 
 const transactionTypeLabels: Record<string, { label: string; icon: 'in' | 'out'; color: string }> = {
-  investor_deposit: { label: 'Depósito Inversión', icon: 'in', color: 'text-green-600' },
+  investor_deposit: { label: 'Entrada de Inversión', icon: 'in', color: 'text-green-600' },
   loan_disbursement: { label: 'Desembolso', icon: 'out', color: 'text-red-600' },
-  interest_payment: { label: 'Pago Intereses', icon: 'in', color: 'text-green-600' },
-  principal_payment: { label: 'Abono Capital', icon: 'in', color: 'text-green-600' },
-  full_payment: { label: 'Pago Total', icon: 'in', color: 'text-green-600' },
-  late_fee: { label: 'Mora', icon: 'in', color: 'text-orange-600' },
-  investor_return: { label: 'Rendimiento', icon: 'out', color: 'text-red-600' },
-  capital_return: { label: 'Devolución Capital', icon: 'out', color: 'text-red-600' },
-  proyecty_commission: { label: 'Comisión', icon: 'in', color: 'text-primary-600' },
+  interest_payment: { label: 'Recaudo Intereses', icon: 'in', color: 'text-green-600' },
+  principal_payment: { label: 'Recaudo Capital', icon: 'in', color: 'text-green-600' },
+  investor_return: { label: 'Rendimiento', icon: 'out', color: 'text-blue-600' },
+  proyecty_commission: { label: 'Comisión Proyecty', icon: 'in', color: 'text-primary-600' },
   adjustment: { label: 'Ajuste', icon: 'in', color: 'text-gray-600' },
   refund: { label: 'Reembolso', icon: 'out', color: 'text-red-600' },
 }

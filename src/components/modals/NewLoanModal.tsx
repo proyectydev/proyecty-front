@@ -105,6 +105,8 @@ export function NewLoanModal({ isOpen, onClose }: NewLoanModalProps) {
           borrower_id: formData.borrower_id,
           property_id: formData.property_id,
           requested_amount: parseFloat(formData.requested_amount),
+          current_balance: 0, // Saldo inicia en 0, se actualizará al desembolsar
+          disbursed_amount: 0, // Aún no se ha desembolsado
           annual_interest_rate: monthlyRate * 12, // Guardamos anual para compatibilidad
           proyecty_commission_rate: proyectyRate * 12,
           investor_return_rate: investorMonthlyRate * 12,

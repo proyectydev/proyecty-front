@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, UserPlus, CheckCircle, Info, MessageCircle, Copy, Check, Mail } from 'lucide-react'
+import { X, UserPlus, CheckCircle, Info, MessageCircle, Copy, Check, Mail, Send, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -11,8 +11,11 @@ interface InviteUserModalProps {
 export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailError, setEmailError] = useState('')
   const [createdUserName, setCreatedUserName] = useState('')
   const [createdUserPhone, setCreatedUserPhone] = useState('')
   const [createdUserEmail, setCreatedUserEmail] = useState('')
@@ -53,19 +56,22 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
         throw new Error('El email es requerido')
       }
 
-      // Verificar si ya existe un usuario con ese email
+      // Verificar si ya existe un usuario con ese email en nuestra tabla
       const { data: existingUser } = await supabase
         .from('users')
-        .select('id')
+        .select('id, is_online_user')
         .eq('email', formData.email)
         .single()
 
       if (existingUser) {
-        throw new Error('Ya existe un usuario con ese email')
+        if (existingUser.is_online_user) {
+          throw new Error('Este email ya tiene cuenta de acceso registrada')
+        } else {
+          throw new Error('Ya existe un usuario con ese email. Puedes enviarle la invitación desde su perfil.')
+        }
       }
 
-      // Crear solo el registro en nuestra tabla users
-      // El usuario podrá registrarse después con este email para establecer contraseña
+      // Crear solo el registro en nuestra tabla users (sin cuenta de acceso aún)
       const { error: insertError } = await supabase
         .from('users')
         .insert([{
@@ -111,6 +117,8 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
     setSuccess(false)
     setError('')
     setCopied(false)
+    setEmailSent(false)
+    setEmailError('')
     setFormData({
       full_name: '',
       email: '',
@@ -123,6 +131,72 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
       admin_notes: '',
     })
     onClose()
+  }
+
+  // Enviar invitación por email usando la Edge Function
+  const handleSendEmailInvite = async () => {
+    setSendingEmail(true)
+    setEmailError('')
+    
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      
+      // Obtener sesión fresca
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      console.log('Session check:', { 
+        hasSession: !!session, 
+        hasToken: !!session?.access_token,
+        tokenPreview: session?.access_token?.substring(0, 50) + '...',
+        error: sessionError?.message 
+      })
+      
+      if (sessionError || !session?.access_token) {
+        throw new Error('No hay sesión activa. Por favor, cierra sesión y vuelve a entrar.')
+      }
+
+      console.log('Calling Edge Function with URL:', `${supabaseUrl}/functions/v1/invite-user`)
+
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          email: createdUserEmail,
+          full_name: createdUserName,
+          phone: createdUserPhone,
+          user_type: formData.user_type,
+          document_type: formData.document_type,
+          document_number: formData.document_number,
+          city: formData.city,
+          department: formData.department,
+          admin_notes: formData.admin_notes,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al enviar invitación')
+      }
+
+      setEmailSent(true)
+      // Refrescar lista de usuarios
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['borrowers'] })
+      queryClient.invalidateQueries({ queryKey: ['investors'] })
+      
+    } catch (err) {
+      console.error('Error enviando email:', err)
+      setEmailError(err instanceof Error ? err.message : 'Error al enviar email')
+    } finally {
+      setSendingEmail(false)
+    }
   }
 
   // Generar el mensaje de invitación
@@ -217,15 +291,67 @@ Si tienes alguna pregunta, no dudes en contactarnos.
                     <div className="text-sm">
                       <p className="font-medium text-blue-800">Siguiente paso</p>
                       <p className="text-blue-700">
-                        Envíale el enlace de registro para que cree su contraseña. 
+                        Envíale la invitación para que cree su contraseña. 
                         Ya puedes asignarlo a hipotecas.
                       </p>
                     </div>
                   </div>
                 </div>
 
+                {/* Email Error */}
+                {emailError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
+                    {emailError}
+                  </div>
+                )}
+
+                {/* Éxito de envío de email */}
+                {emailSent && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-4 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>¡Email de invitación enviado correctamente!</span>
+                  </div>
+                )}
+
                 {/* Botones de acción */}
                 <div className="space-y-3 mb-4">
+                  {/* Enviar Invitación Automática - DESTACADO */}
+                  <button 
+                    onClick={handleSendEmailInvite}
+                    disabled={sendingEmail || emailSent}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      emailSent 
+                        ? 'bg-green-100 text-green-700 cursor-default'
+                        : 'bg-primary-600 hover:bg-primary-700 text-white'
+                    }`}
+                  >
+                    {sendingEmail ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Enviando invitación...
+                      </>
+                    ) : emailSent ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Invitación Enviada
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        Enviar Invitación por Email
+                      </>
+                    )}
+                  </button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="px-2 bg-white text-gray-500">o enviar manualmente</span>
+                    </div>
+                  </div>
+
                   {/* WhatsApp */}
                   <button 
                     onClick={handleWhatsApp}
@@ -235,13 +361,13 @@ Si tienes alguna pregunta, no dudes en contactarnos.
                     Enviar por WhatsApp
                   </button>
 
-                  {/* Email */}
+                  {/* Email Manual */}
                   <button 
                     onClick={handleEmail}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
                   >
                     <Mail className="w-5 h-5" />
-                    Enviar por Email
+                    Abrir Cliente de Email
                   </button>
 
                   {/* Copiar */}

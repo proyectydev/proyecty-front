@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Search, Eye, Edit, UserPlus, Trash2, MoreVertical, RefreshCw, Mail } from 'lucide-react'
-import { InviteUserModal, EditUserModal, DeleteConfirmModal } from '../../components/modals'
+import { Search, Eye, Edit, UserPlus, Trash2, MoreVertical, RefreshCw, Mail, Send } from 'lucide-react'
+import { InviteUserModal, EditUserModal, DeleteConfirmModal, ResendInviteModal } from '../../components/modals'
 import type { User } from '../../types/database'
 
 const userTypeLabels: Record<string, { label: string; class: string }> = {
@@ -19,6 +19,7 @@ export function UsersPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showEditUserModal, setShowEditUserModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showResendInviteModal, setShowResendInviteModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [changingType, setChangingType] = useState<string | null>(null)
@@ -58,9 +59,38 @@ export function UsersPage() {
     setOpenMenuId(null)
   }
 
+  const handleResendInvite = (user: User) => {
+    setSelectedUser(user)
+    setShowResendInviteModal(true)
+    setOpenMenuId(null)
+  }
+
   const handleDeleteUser = async () => {
     if (!selectedUser) return
     
+    // Verificar si el usuario tiene inversiones
+    const { data: investments } = await supabase
+      .from('investments')
+      .select('id')
+      .eq('investor_id', selectedUser.id)
+      .limit(1)
+    
+    if (investments && investments.length > 0) {
+      throw new Error('No se puede eliminar este usuario porque tiene inversiones registradas. Puedes desactivarlo en su lugar.')
+    }
+    
+    // Verificar si el usuario tiene propiedades/hipotecas
+    const { data: properties } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('owner_id', selectedUser.id)
+      .limit(1)
+    
+    if (properties && properties.length > 0) {
+      throw new Error('No se puede eliminar este usuario porque tiene hipotecas registradas. Puedes desactivarlo en su lugar.')
+    }
+    
+    // Solo si no tiene datos asociados, eliminar
     const { error } = await supabase
       .from('users')
       .delete()
@@ -186,10 +216,10 @@ export function UsersPage() {
                       </span>
                     </td>
                     <td>
-                      {user.is_active ? (
-                        <span className="badge-success">Activo</span>
+                      {user.is_online_user ? (
+                        <span className="badge-success">Con cuenta</span>
                       ) : (
-                        <span className="badge-danger">Inactivo</span>
+                        <span className="badge-warning">Sin cuenta</span>
                       )}
                     </td>
                     <td>
@@ -222,6 +252,16 @@ export function UsersPage() {
                                 <Eye className="w-4 h-4" />
                                 Ver detalles
                               </button>
+                              {/* Reenviar invitación si no tiene cuenta */}
+                              {!user.is_online_user && (
+                                <button
+                                  onClick={() => handleResendInvite(user)}
+                                  className="w-full px-4 py-2 text-left text-sm text-primary-600 hover:bg-primary-50 flex items-center gap-2"
+                                >
+                                  <Send className="w-4 h-4" />
+                                  Reenviar invitación
+                                </button>
+                              )}
                               {/* Opciones para cambiar tipo de usuario */}
                               {user.user_type !== 'admin' && (
                                 <>
@@ -381,6 +421,15 @@ export function UsersPage() {
         title="Eliminar Usuario"
         message="¿Estás seguro de que deseas eliminar este usuario? Se eliminarán todos sus datos."
         itemName={selectedUser?.full_name}
+      />
+
+      <ResendInviteModal
+        isOpen={showResendInviteModal}
+        onClose={() => {
+          setShowResendInviteModal(false)
+          setSelectedUser(null)
+        }}
+        user={selectedUser}
       />
     </div>
   )

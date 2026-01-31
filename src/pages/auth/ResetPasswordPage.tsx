@@ -15,11 +15,11 @@ export function ResetPasswordPage() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    // Verificar si hay una sesión válida de recuperación
+    // Verificar si hay una sesión válida de recuperación o invitación
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
-      // Si llegó aquí desde un link de recuperación, debería tener sesión
+      // Si llegó aquí desde un link de recuperación o invitación, debería tener sesión
       if (session) {
         setValidSession(true)
       }
@@ -30,7 +30,9 @@ export function ResetPasswordPage() {
 
     // Escuchar eventos de auth (cuando el usuario hace click en el link del email)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      console.log('Auth event in ResetPassword:', event)
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        // SIGNED_IN también aplica cuando viene de una invitación
         setValidSession(true)
         setChecking(false)
       }

@@ -42,14 +42,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
-      {/* Logo */}
+    <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+      {/* Logo Premium */}
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-3xl">P</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Proyecty</h1>
-        <p className="text-gray-500 mt-1">Sistema de Crowdlending Hipotecario</p>
+        <img 
+          src="/assets/Logo-Proyecty-Colombia_FB.png" 
+          alt="Proyecty Colombia" 
+          className="h-20 mx-auto mb-4 drop-shadow-lg object-contain"
+        />
+        <p className="text-gray-500 mt-1 text-sm">Crowdlending Hipotecario</p>
+        <div className="w-16 h-1 bg-gradient-to-r from-primary-400 to-primary-600 mx-auto mt-3 rounded-full"></div>
       </div>
 
       {/* Form */}
@@ -83,7 +85,7 @@ export function LoginPage() {
             </label>
             <Link 
               to="/recuperar-contrasena" 
-              className="text-sm text-primary-600 hover:underline"
+              className="text-sm text-primary-600 hover:text-primary-700 hover:underline font-medium"
             >
               ¿Olvidaste tu contraseña?
             </Link>
@@ -101,7 +103,7 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors"
             >
               {showPassword ? (
                 <EyeOff className="w-5 h-5" />
@@ -115,7 +117,7 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-primary w-full py-3"
+          className="btn-primary w-full py-3 text-base font-semibold"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -127,14 +129,16 @@ export function LoginPage() {
 
       <p className="text-center text-sm text-gray-500 mt-6">
         ¿No tienes cuenta?{' '}
-        <Link to="/registro" className="text-primary-600 hover:underline font-medium">
+        <Link to="/registro" className="text-primary-600 hover:text-primary-700 hover:underline font-semibold">
           Regístrate aquí
         </Link>
       </p>
 
-      <p className="text-center text-sm text-gray-400 mt-4">
-        © 2026 Proyecty Inmobiliaria. Cúcuta, Colombia.
-      </p>
+      <div className="mt-6 pt-4 border-t border-gray-100">
+        <p className="text-center text-xs text-gray-400">
+          © 2026 Proyecty Colombia. Cúcuta, Norte de Santander.
+        </p>
+      </div>
     </div>
   )
 }

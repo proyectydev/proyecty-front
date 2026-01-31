@@ -234,36 +234,40 @@ export function DashboardPage() {
       title: 'Cartera Total',
       value: formatCurrency(loanStats?.totalBalance || 0),
       icon: DollarSign,
-      color: 'bg-primary-500',
+      color: 'bg-gradient-to-br from-primary-400 to-primary-600',
+      iconBg: 'bg-primary-500/20',
       description: `${formatCurrency(loanStats?.totalDisbursed || 0)} desembolsado`,
     },
     {
       title: 'Préstamos Activos',
       value: loanStats?.active || 0,
       icon: FileText,
-      color: 'bg-green-500',
+      color: 'bg-gradient-to-br from-dark-700 to-dark-900',
+      iconBg: 'bg-dark-800',
       description: `${loanStats?.pending || 0} pendientes · ${loanStats?.paidOff || 0} pagados`,
     },
     {
       title: 'Inversionistas',
       value: userStats?.investors || 0,
       icon: Users,
-      color: 'bg-blue-500',
+      color: 'bg-gradient-to-br from-gray-500 to-gray-700',
+      iconBg: 'bg-gray-600',
       description: `${userStats?.borrowers || 0} deudores registrados`,
     },
     {
       title: 'Recaudado (Período)',
       value: formatCurrency(periodTransactions?.totalCollected || 0),
       icon: TrendingUp,
-      color: 'bg-accent-500',
+      color: 'bg-gradient-to-br from-emerald-500 to-emerald-700',
+      iconBg: 'bg-emerald-600',
       description: `${periodTransactions?.count || 0} transacciones`,
     },
   ]
 
   return (
     <div className="space-y-8">
-      {/* Header con filtros de fecha */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header con filtros de fecha - Diseño mejorado */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">
@@ -271,51 +275,53 @@ export function DashboardPage() {
           </p>
         </div>
         
-        {/* Filtros de fecha */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Calendar className="w-5 h-5 text-gray-400" />
-          <select
-            value={datePreset}
-            onChange={(e) => setDatePreset(e.target.value as DatePreset)}
-            className="input py-2 px-3 text-sm"
-          >
-            {datePresets.map(p => (
-              <option key={p.value} value={p.value}>{p.label}</option>
-            ))}
-          </select>
+        {/* Filtros de fecha - Inline mejorado */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary-500" />
+            <select
+              value={datePreset}
+              onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+              className="text-sm font-medium bg-transparent border-none focus:ring-0 text-gray-700 cursor-pointer pr-8"
+            >
+              {datePresets.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
           
           {datePreset === 'custom' && (
-            <>
+            <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l border-gray-200">
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="input py-2 px-3 text-sm"
+                className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               />
-              <span className="text-gray-400">a</span>
+              <span className="text-gray-400 text-sm">a</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="input py-2 px-3 text-sm"
+                className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               />
-            </>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Premium Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat) => (
-          <div key={stat.title} className="card">
+          <div key={stat.title} className="card hover:shadow-lg transition-all duration-300 border-gray-100 hover:border-primary-200">
             <div className="card-body">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className="text-2xl font-bold text-dark-900 mt-1">{stat.value}</p>
                   <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-xl`}>
+                <div className={`${stat.color} p-3 rounded-xl shadow-lg`}>
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -324,17 +330,17 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Métricas del Período */}
+      {/* Métricas del Período - Estilo Premium */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <div className="card bg-gradient-to-br from-emerald-50 to-white border-emerald-100 hover:shadow-md transition-all">
           <div className="card-body">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500 rounded-lg">
+              <div className="p-2.5 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/30">
                 <ArrowDownCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-green-700 font-medium">Intereses Recibidos</p>
-                <p className="text-lg font-bold text-green-800">
+                <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Intereses Recibidos</p>
+                <p className="text-xl font-bold text-dark-900">
                   {formatCurrency(periodTransactions?.totalInterest || 0)}
                 </p>
               </div>
@@ -342,15 +348,15 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <div className="card bg-gradient-to-br from-gray-50 to-white border-gray-200 hover:shadow-md transition-all">
           <div className="card-body">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
+              <div className="p-2.5 bg-dark-800 rounded-xl shadow-lg shadow-dark-800/30">
                 <Wallet className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-blue-700 font-medium">Abonos a Capital</p>
-                <p className="text-lg font-bold text-blue-800">
+                <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Abonos a Capital</p>
+                <p className="text-xl font-bold text-dark-900">
                   {formatCurrency(periodTransactions?.totalPrincipal || 0)}
                 </p>
               </div>
@@ -358,15 +364,15 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <div className="card bg-gradient-to-br from-slate-50 to-white border-slate-200 hover:shadow-md transition-all">
           <div className="card-body">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500 rounded-lg">
+              <div className="p-2.5 bg-slate-700 rounded-xl shadow-lg shadow-slate-700/30">
                 <ArrowUpCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-purple-700 font-medium">Desembolsos</p>
-                <p className="text-lg font-bold text-purple-800">
+                <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide">Desembolsos</p>
+                <p className="text-xl font-bold text-dark-900">
                   {formatCurrency(periodTransactions?.totalDisbursed || 0)}
                 </p>
               </div>
@@ -374,15 +380,15 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+        <div className="card bg-gradient-to-br from-primary-50 to-white border-primary-200 hover:shadow-md transition-all">
           <div className="card-body">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500 rounded-lg">
+              <div className="p-2.5 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl shadow-lg shadow-primary-500/30">
                 <PiggyBank className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-amber-700 font-medium">Comisión Proyecty</p>
-                <p className="text-lg font-bold text-amber-800">
+                <p className="text-xs text-primary-700 font-semibold uppercase tracking-wide">Comisión Proyecty</p>
+                <p className="text-xl font-bold text-dark-900">
                   {formatCurrency(periodTransactions?.totalProyectyCommissions || 0)}
                 </p>
               </div>

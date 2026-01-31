@@ -174,14 +174,14 @@ export function RegisterPage() {
   if (success) {
     return (
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg mx-auto text-center">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-10 h-10 text-green-600" />
+        <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-10 h-10 text-primary-600" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Cuenta Creada!</h1>
         {needsEmailConfirmation ? (
           <>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <Mail className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-6">
+              <Mail className="w-8 h-8 text-primary-500 mx-auto mb-2" />
               <p className="text-gray-700 font-medium mb-1">Revisa tu correo electrónico</p>
               <p className="text-gray-500 text-sm">
                 Hemos enviado un enlace de confirmación a <strong>{formData.email}</strong>. 
@@ -209,34 +209,39 @@ export function RegisterPage() {
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg mx-auto">
-      {/* Logo */}
+      {/* Logo Premium */}
       <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-3xl">P</span>
-        </div>
+        <img 
+          src="/assets/Logo-Proyecty-Colombia_FB.png" 
+          alt="Proyecty Colombia" 
+          className="h-16 mx-auto mb-4 drop-shadow-lg object-contain"
+        />
         <h1 className="text-2xl font-bold text-gray-900">Bienvenido a Proyecty</h1>
         <p className="text-gray-500 mt-1">Tu plataforma de financiamiento hipotecario</p>
       </div>
 
-      {/* Servicios - Solo informativo */}
+      {/* Servicios - Estilo Premium */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="text-center p-3 bg-blue-50 rounded-xl">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <User className="w-5 h-5 text-blue-600" />
+        <div className="group text-center p-4 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border-2 border-primary-200 hover:border-primary-400 hover:shadow-lg transition-all cursor-pointer">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md group-hover:scale-110 transition-transform">
+            <User className="w-6 h-6 text-white" />
           </div>
-          <p className="text-xs text-gray-600 font-medium">Solicita Créditos</p>
+          <p className="text-sm text-gray-800 font-semibold">Solicita</p>
+          <p className="text-xs text-primary-600 font-medium">Créditos</p>
         </div>
-        <div className="text-center p-3 bg-green-50 rounded-xl">
-          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Briefcase className="w-5 h-5 text-green-600" />
+        <div className="group text-center p-4 bg-gradient-to-br from-dark-50 to-dark-100 rounded-xl border-2 border-dark-200 hover:border-dark-400 hover:shadow-lg transition-all cursor-pointer">
+          <div className="w-12 h-12 bg-gradient-to-br from-dark-600 to-dark-800 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md group-hover:scale-110 transition-transform">
+            <Briefcase className="w-6 h-6 text-primary-400" />
           </div>
-          <p className="text-xs text-gray-600 font-medium">Invierte tu Dinero</p>
+          <p className="text-sm text-gray-800 font-semibold">Invierte</p>
+          <p className="text-xs text-dark-600 font-medium">Tu Dinero</p>
         </div>
-        <div className="text-center p-3 bg-purple-50 rounded-xl">
-          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Building2 className="w-5 h-5 text-purple-600" />
+        <div className="group text-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 hover:border-gray-400 hover:shadow-lg transition-all cursor-pointer">
+          <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-700 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md group-hover:scale-110 transition-transform">
+            <Building2 className="w-6 h-6 text-white" />
           </div>
-          <p className="text-xs text-gray-600 font-medium">Gestiona Hipotecas</p>
+          <p className="text-sm text-gray-800 font-semibold">Gestiona</p>
+          <p className="text-xs text-gray-600 font-medium">Hipotecas</p>
         </div>
       </div>
 

@@ -79,6 +79,7 @@ export function PropertiesPage() {
   const [showNewPropertyModal, setShowNewPropertyModal] = useState(false)
   const [selectedProperty, setSelectedProperty] = useState<PropertyWithLoan | null>(null)
   const [showPropertyDetail, setShowPropertyDetail] = useState(false)
+  const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
 
   const { data: properties, isLoading } = useQuery({
     queryKey: ['properties-with-loans', search, statusFilter],
@@ -276,15 +277,15 @@ export function PropertiesPage() {
               >
                 {/* Imagen de la propiedad */}
                 {property.main_image_url ? (
-                  <div className="h-40 w-full overflow-hidden">
+                  <div className="h-48 w-full overflow-hidden bg-gray-100 flex items-center justify-center">
                     <img 
                       src={property.main_image_url} 
                       alt={property.property_name}
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-full object-contain"
                     />
                   </div>
                 ) : (
-                  <div className="h-40 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <div className="h-48 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                     <Building2 className="w-12 h-12 text-gray-300" />
                   </div>
                 )}
@@ -381,6 +382,17 @@ export function PropertiesPage() {
                       <Eye className="w-4 h-4 mr-1" />
                       Ver
                     </button>
+                    <button 
+                      className="btn-secondary flex-1 text-sm py-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedProperty(property)
+                        setShowEditPropertyModal(true)
+                      }}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Editar
+                    </button>
                     {property.loan && (
                       <button 
                         className="btn-primary flex-1 text-sm py-2"
@@ -427,6 +439,20 @@ export function PropertiesPage() {
           property={selectedProperty}
           onClose={() => {
             setShowPropertyDetail(false)
+            setSelectedProperty(null)
+          }}
+          onUpdate={() => {
+            queryClient.invalidateQueries({ queryKey: ['properties-with-loans'] })
+          }}
+        />
+      )}
+
+      {/* Modal Editar Propiedad */}
+      {showEditPropertyModal && selectedProperty && (
+        <EditPropertyModal
+          property={selectedProperty}
+          onClose={() => {
+            setShowEditPropertyModal(false)
             setSelectedProperty(null)
           }}
           onUpdate={() => {
@@ -533,11 +559,11 @@ function PropertyDetailModal({
           {/* Imagen */}
           <div className="relative">
             {imageUrl ? (
-              <div className="relative h-48 w-full">
+              <div className="relative h-56 w-full bg-gray-100 flex items-center justify-center">
                 <img 
                   src={imageUrl} 
                   alt={property.property_name}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                 />
                 <div className="absolute top-2 right-2 flex gap-2">
                   <button
@@ -670,6 +696,230 @@ function PropertyDetailModal({
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Modal para editar propiedad
+function EditPropertyModal({ 
+  property, 
+  onClose,
+  onUpdate
+}: { 
+  property: PropertyWithLoan
+  onClose: () => void
+  onUpdate: () => void
+}) {
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    property_name: property.property_name,
+    property_type: property.property_type,
+    address: property.address,
+    neighborhood: property.neighborhood || '',
+    city: property.city,
+    department: property.department,
+    appraisal_value: property.appraisal_value?.toString() || '',
+    commercial_value: property.commercial_value?.toString() || '',
+    matricula_inmobiliaria: property.matricula_inmobiliaria || '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          property_name: formData.property_name,
+          property_type: formData.property_type,
+          address: formData.address,
+          neighborhood: formData.neighborhood || null,
+          city: formData.city,
+          department: formData.department,
+          appraisal_value: formData.appraisal_value ? parseFloat(formData.appraisal_value.replace(/[^\d]/g, '')) : null,
+          commercial_value: formData.commercial_value ? parseFloat(formData.commercial_value.replace(/[^\d]/g, '')) : null,
+          matricula_inmobiliaria: formData.matricula_inmobiliaria || null,
+        })
+        .eq('id', property.id)
+
+      if (error) throw error
+
+      onUpdate()
+      onClose()
+    } catch (err) {
+      console.error('Error updating property:', err)
+      alert('Error al actualizar la propiedad')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Editar Propiedad</h2>
+              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="label">Nombre de la Propiedad *</label>
+                <input
+                  type="text"
+                  name="property_name"
+                  value={formData.property_name}
+                  onChange={handleChange}
+                  className="input"
+                  required
+                />
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <label className="label">Tipo de Propiedad</label>
+                <select
+                  name="property_type"
+                  value={formData.property_type}
+                  onChange={handleChange}
+                  className="input"
+                >
+                  <option value="Casa">Casa</option>
+                  <option value="Apartamento">Apartamento</option>
+                  <option value="Local">Local Comercial</option>
+                  <option value="Oficina">Oficina</option>
+                  <option value="Bodega">Bodega</option>
+                  <option value="Lote">Lote</option>
+                  <option value="Finca">Finca</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              {/* Dirección */}
+              <div>
+                <label className="label">Dirección *</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="input"
+                  required
+                />
+              </div>
+
+              {/* Barrio */}
+              <div>
+                <label className="label">Barrio</label>
+                <input
+                  type="text"
+                  name="neighborhood"
+                  value={formData.neighborhood}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+
+              {/* Ciudad y Departamento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Ciudad *</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">Departamento *</label>
+                  <input
+                    type="text"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Matrícula */}
+              <div>
+                <label className="label">Matrícula Inmobiliaria</label>
+                <input
+                  type="text"
+                  name="matricula_inmobiliaria"
+                  value={formData.matricula_inmobiliaria}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="000-00000"
+                />
+              </div>
+
+              {/* Valores */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Avalúo ($)</label>
+                  <input
+                    type="text"
+                    name="appraisal_value"
+                    value={formData.appraisal_value}
+                    onChange={handleChange}
+                    className="input"
+                    placeholder="200000000"
+                  />
+                </div>
+                <div>
+                  <label className="label">Valor Comercial ($)</label>
+                  <input
+                    type="text"
+                    name="commercial_value"
+                    value={formData.commercial_value}
+                    onChange={handleChange}
+                    className="input"
+                    placeholder="200000000"
+                  />
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn-secondary flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={loading}
+                >
+                  {loading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

@@ -64,6 +64,11 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Determinar la URL de redirección (producción o desarrollo)
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://app.proyecty.com'
+    const redirectTo = `${siteUrl}/aceptar-invitacion`
+    console.log('Redirect URL:', redirectTo)
+
     // Verificar si el usuario ya existe en auth.users
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const existingAuthUser = existingUsers?.users?.find(u => u.email === email)
@@ -89,8 +94,9 @@ Deno.serve(async (req) => {
     const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: {
         full_name: full_name,
-        user_type: user_type || 'borrower',
-      }
+        user_type: user_type || 'user',
+      },
+      redirectTo: redirectTo,
     })
 
     if (error) {

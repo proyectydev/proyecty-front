@@ -12,6 +12,7 @@ import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
+import { AcceptInvitePage } from './pages/auth/AcceptInvitePage'
 
 // Pages - Admin
 import { DashboardPage } from './pages/admin/DashboardPage'
@@ -43,6 +44,7 @@ function App() {
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/registro" element={<RegisterPage />} />
+              <Route path="/aceptar-invitacion" element={<AcceptInvitePage />} />
               <Route path="/recuperar-contrasena" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             </Route>

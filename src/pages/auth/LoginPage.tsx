@@ -54,6 +54,7 @@ export function LoginPage() {
           navigate('/mi-cuenta', { replace: true })
         }
       }
+      setLoading(false)
     } catch (err) {
       setError('Ocurrió un error. Por favor intenta de nuevo.')
       setLoading(false)

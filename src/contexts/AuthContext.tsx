@@ -35,35 +35,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Solo inicialización - verificar sesión existente
   useEffect(() => {
-    // Verificar sesión actual
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user?.email) {
-          const userData = await fetchUserData(session.user.email)
-          setUser(userData)
-        }
-      } catch (error) {
-        console.error('Error checking session:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkSession()
-
-    // Escuchar cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event)
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-      } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user?.email) {
-        // Cargar datos del usuario cuando inicia sesión (incluyendo confirmación de email)
+      if (session?.user?.email) {
         const userData = await fetchUserData(session.user.email)
         setUser(userData)
+      }
+      
+      setLoading(false)
+    }
+
+    initAuth()
+
+    // Escuchar SOLO logout
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
       }
     })
 
@@ -81,10 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: authError, user: null }
       }
 
-      // Obtener datos del usuario de nuestra tabla
+      // El onAuthStateChange manejará el resto
       const userData = await fetchUserData(email)
       
       if (!userData) {
+        await supabase.auth.signOut()
         return { error: new Error('Usuario no encontrado en el sistema'), user: null }
       }
 

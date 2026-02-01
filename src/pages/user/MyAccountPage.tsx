@@ -21,12 +21,6 @@ export function MyAccountPage() {
     navigate('/login')
   }
 
-  const userTypeLabels: Record<string, string> = {
-    borrower: 'Solicitante de Crédito',
-    investor: 'Inversionista',
-    admin: 'Administrador'
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Header */}
@@ -66,7 +60,7 @@ export function MyAccountPage() {
                 ¡Bienvenido, {user?.full_name?.split(' ')[0]}!
               </h1>
               <p className="text-primary-100">
-                {userTypeLabels[user?.user_type || 'borrower']}
+                Usuario Proyecty
               </p>
               <div className="flex items-center gap-2 mt-3">
                 <CheckCircle className="w-4 h-4 text-green-300" />
@@ -90,37 +84,26 @@ export function MyAccountPage() {
                 Estamos trabajando para traerte la mejor experiencia. Muy pronto podrás:
               </p>
               <ul className="space-y-2 text-gray-300">
-                {user?.user_type === 'borrower' ? (
-                  <>
-                    <li className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary-400" />
-                      Ver el estado de tus solicitudes de crédito
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Home className="w-4 h-4 text-primary-400" />
-                      Consultar tus hipotecas activas
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-primary-400" />
-                      Recibir notificaciones de pagos
-                    </li>
-                  </>
-                ) : (
-                  <>
-                    <li className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-primary-400" />
-                      Ver el rendimiento de tus inversiones
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-primary-400" />
-                      Explorar nuevas oportunidades de inversión
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-primary-400" />
-                      Recibir notificaciones de rendimientos
-                    </li>
-                  </>
-                )}
+                <li className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary-400" />
+                  Ver el estado de tus solicitudes de crédito
+                </li>
+                <li className="flex items-center gap-2">
+                  <Home className="w-4 h-4 text-primary-400" />
+                  Consultar tus hipotecas activas
+                </li>
+                <li className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary-400" />
+                  Ver el rendimiento de tus inversiones
+                </li>
+                <li className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary-400" />
+                  Explorar nuevas oportunidades de inversión
+                </li>
+                <li className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-primary-400" />
+                  Recibir notificaciones importantes
+                </li>
               </ul>
             </div>
           </div>

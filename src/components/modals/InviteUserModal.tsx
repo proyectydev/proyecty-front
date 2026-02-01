@@ -27,7 +27,7 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
     phone: '',
     document_type: 'CC',
     document_number: '',
-    user_type: 'borrower' as 'investor' | 'borrower' | 'both' | 'admin',
+    user_type: 'user' as 'user' | 'admin',
     city: 'Cúcuta',
     department: 'Norte de Santander',
     admin_notes: '',
@@ -125,7 +125,7 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
       phone: '',
       document_type: 'CC',
       document_number: '',
-      user_type: 'borrower',
+      user_type: 'user',
       city: 'Cúcuta',
       department: 'Norte de Santander',
       admin_notes: '',
@@ -414,9 +414,7 @@ Si tienes alguna pregunta, no dudes en contactarnos.
                     className="input"
                     required
                   >
-                    <option value="borrower">Cliente (Deudor)</option>
-                    <option value="investor">Inversionista</option>
-                    <option value="both">Cliente e Inversionista</option>
+                    <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>
                   </select>
                   {formData.user_type === 'admin' && (

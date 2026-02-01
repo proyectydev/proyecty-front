@@ -9,6 +9,7 @@ const userTypeLabels: Record<string, { label: string; class: string }> = {
   admin: { label: 'Administrador', class: 'badge-info' },
   investor: { label: 'Inversionista', class: 'badge-success' },
   borrower: { label: 'Deudor', class: 'badge-warning' },
+  user: { label: 'Usuario', class: 'badge-gray' },
   both: { label: 'Inv/Deudor', class: 'badge-purple' },
 }
 

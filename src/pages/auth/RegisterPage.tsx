@@ -137,7 +137,7 @@ export function RegisterPage() {
             document_number: formData.document_number || null,
             city: formData.city,
             department: formData.department,
-            user_type: 'borrower',
+            user_type: 'user',
             is_verified: !requiresConfirmation,
             is_active: true,
             is_online_user: true,

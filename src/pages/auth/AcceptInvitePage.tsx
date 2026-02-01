@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Lock, User, Mail, Phone, MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
@@ -17,7 +17,6 @@ interface UserData {
 
 export function AcceptInvitePage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -95,22 +94,23 @@ export function AcceptInvitePage() {
               city: existingUser.city || 'Cúcuta',
               department: existingUser.department || 'Norte de Santander',
             }))
-          } else {
+          } else if (sessionData.user) {
             // El usuario no existe en nuestra tabla, usar datos del auth
+            const authUser = sessionData.user
             setUserData({
-              id: sessionData.user.id,
-              full_name: sessionData.user.user_metadata?.full_name || '',
-              email: sessionData.user.email || '',
+              id: authUser.id,
+              full_name: authUser.user_metadata?.full_name || '',
+              email: authUser.email || '',
               phone: null,
               document_type: 'CC',
               document_number: null,
               city: 'Cúcuta',
               department: 'Norte de Santander',
-              user_type: sessionData.user.user_metadata?.user_type || 'user',
+              user_type: authUser.user_metadata?.user_type || 'user',
             })
             setFormData(prev => ({
               ...prev,
-              full_name: sessionData.user.user_metadata?.full_name || '',
+              full_name: authUser.user_metadata?.full_name || '',
             }))
           }
         }

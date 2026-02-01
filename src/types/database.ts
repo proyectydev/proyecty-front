@@ -21,7 +21,7 @@ export interface Database {
           address: string | null
           city: string
           department: string
-          user_type: 'investor' | 'borrower' | 'both' | 'admin'
+          user_type: 'user' | 'investor' | 'borrower' | 'both' | 'admin'
           is_online_user: boolean
           is_verified: boolean
           is_active: boolean
@@ -36,7 +36,7 @@ export interface Database {
         Insert: Partial<Database['public']['Tables']['users']['Row']> & {
           email: string
           full_name: string
-          user_type: 'investor' | 'borrower' | 'both' | 'admin'
+          user_type: 'user' | 'investor' | 'borrower' | 'both' | 'admin'
         }
         Update: Partial<Database['public']['Tables']['users']['Row']>
       }

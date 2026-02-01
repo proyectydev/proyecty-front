@@ -55,13 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession()
 
     // Escuchar cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event)
       
       if (event === 'SIGNED_OUT') {
         setUser(null)
+      } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user?.email) {
+        // Cargar datos del usuario cuando inicia sesión (incluyendo confirmación de email)
+        const userData = await fetchUserData(session.user.email)
+        setUser(userData)
       }
-      // No manejamos SIGNED_IN aquí porque lo hace signIn directamente
     })
 
     return () => subscription.unsubscribe()

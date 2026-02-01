@@ -69,7 +69,7 @@ function App() {
             <Route
               path="/mi-cuenta"
               element={
-                <ProtectedRoute allowedRoles={['borrower', 'investor', 'admin']}>
+                <ProtectedRoute allowedRoles={['user', 'borrower', 'investor', 'both', 'admin']}>
                   <MyAccountPage />
                 </ProtectedRoute>
               }

@@ -89,7 +89,7 @@ export function DashboardPage() {
     queryFn: async () => {
       const { data: loans, error } = await supabase
         .from('loans')
-        .select('status, current_balance, disbursed_amount, proyecty_commission_rate, investor_return_rate')
+        .select('status, current_balance, disbursed_amount, requested_amount, proyecty_commission_rate, investor_return_rate')
         .neq('status', 'deleted')
         .neq('status', 'cancelled')
 
@@ -102,12 +102,30 @@ export function DashboardPage() {
         status: string; 
         current_balance: number | null; 
         disbursed_amount: number | null;
+        requested_amount: number | null;
         proyecty_commission_rate: number | null;
         investor_return_rate: number | null;
       }
       const loanList = (loans || []) as LoanRow[]
 
-      const activeLoans = loanList.filter(l => ['disbursed', 'current', 'overdue'].includes(l.status))
+      const activeStatuses = ['disbursed', 'current', 'overdue']
+      const activeLoans = loanList.filter(l => activeStatuses.includes(l.status))
+      
+      // Para préstamos activos, usar current_balance, o si es 0/null, usar requested_amount
+      const getBalance = (l: LoanRow) => {
+        if (activeStatuses.includes(l.status)) {
+          return l.current_balance && l.current_balance > 0 ? l.current_balance : (l.requested_amount || 0)
+        }
+        return l.current_balance || 0
+      }
+      
+      // Para disbursed_amount, usar el valor o requested_amount como fallback para préstamos activos
+      const getDisbursed = (l: LoanRow) => {
+        if (activeStatuses.includes(l.status)) {
+          return l.disbursed_amount && l.disbursed_amount > 0 ? l.disbursed_amount : (l.requested_amount || 0)
+        }
+        return l.disbursed_amount || 0
+      }
       
       const stats = {
         total: loanList.length,
@@ -115,8 +133,8 @@ export function DashboardPage() {
         overdue: loanList.filter(l => l.status === 'overdue').length,
         pending: loanList.filter(l => ['draft', 'fundraising', 'funded'].includes(l.status)).length,
         paidOff: loanList.filter(l => l.status === 'paid_off').length,
-        totalBalance: loanList.reduce((acc, l) => acc + (l.current_balance || 0), 0),
-        totalDisbursed: loanList.reduce((acc, l) => acc + (l.disbursed_amount || 0), 0),
+        totalBalance: loanList.reduce((acc, l) => acc + getBalance(l), 0),
+        totalDisbursed: loanList.reduce((acc, l) => acc + getDisbursed(l), 0),
         avgProyectyRate: activeLoans.length > 0 
           ? activeLoans.reduce((acc, l) => acc + (l.proyecty_commission_rate || 0), 0) / activeLoans.length 
           : 0,

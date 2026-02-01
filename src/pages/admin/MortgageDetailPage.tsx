@@ -139,11 +139,24 @@ export function MortgageDetailPage() {
 
   // Cambiar estado de la hipoteca
   async function changeStatus(newStatus: string) {
-    if (!id) return
+    if (!id || !loan) return
+    
+    // Preparar los datos de actualización
+    const updateData: Record<string, unknown> = { status: newStatus }
+    
+    // Si cambia a "disbursed" y no tiene valores, inicializar current_balance y disbursed_amount
+    if (newStatus === 'disbursed') {
+      if (!loan.disbursed_amount || loan.disbursed_amount === 0) {
+        updateData.disbursed_amount = loan.requested_amount
+      }
+      if (!loan.current_balance || loan.current_balance === 0) {
+        updateData.current_balance = loan.requested_amount
+      }
+    }
     
     const { error } = await supabase
       .from('loans')
-      .update({ status: newStatus })
+      .update(updateData)
       .eq('id', id)
     
     if (!error) {

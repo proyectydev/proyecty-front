@@ -34,7 +34,7 @@ export function MyAccountPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <img 
-              src="/assets/Logo-Proyecty-Colombia_FB.png" 
+              src="/assets/Logo-Proyecty-Colombia_FB1.png" 
               alt="Proyecty" 
               className="h-10 object-contain"
             />

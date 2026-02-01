@@ -26,7 +26,7 @@ export function UnauthorizedPage() {
         <p className="text-gray-600 mb-6">
           {user ? (
             <>
-              Tu cuenta de tipo <strong className="text-gold-600">{user.user_type === 'borrower' ? 'Deudor' : user.user_type === 'investor' ? 'Inversionista' : user.user_type}</strong> no tiene permisos para acceder al panel de administración.
+              Tu cuenta de tipo <strong className="text-gold-600">{user.user_type === 'user' ? 'Usuario' : user.user_type === 'borrower' ? 'Deudor' : user.user_type === 'investor' ? 'Inversionista' : user.user_type}</strong> no tiene permisos para acceder al panel de administración.
             </>
           ) : (
             'No tienes permisos para acceder a esta sección.'

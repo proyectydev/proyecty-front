@@ -31,14 +31,14 @@ export function NewLoanModal({ isOpen, onClose }: NewLoanModalProps) {
     notes: '',
   })
 
-  // Obtener usuarios tipo deudor
+  // Obtener usuarios (todos menos admin pueden ser deudores)
   const { data: borrowers } = useQuery({
     queryKey: ['borrowers'],
     queryFn: async () => {
       const { data } = await supabase
         .from('users')
         .select('id, full_name, document_number, email')
-        .in('user_type', ['borrower', 'both'])
+        .in('user_type', ['user', 'borrower', 'both'])
         .eq('is_active', true)
         .order('full_name')
       return data as Pick<User, 'id' | 'full_name' | 'document_number' | 'email'>[]
@@ -179,14 +179,14 @@ export function NewLoanModal({ isOpen, onClose }: NewLoanModalProps) {
               {/* Deudor */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="label mb-0">Deudor (Cliente) *</label>
+                  <label className="label mb-0">Cliente (Deudor) *</label>
                   <button
                     type="button"
                     onClick={() => setShowNewUserModal(true)}
                     className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
                   >
                     <Plus className="w-4 h-4" />
-                    Nuevo Deudor
+                    Nuevo Cliente
                   </button>
                 </div>
                 <div className="relative">
@@ -198,7 +198,7 @@ export function NewLoanModal({ isOpen, onClose }: NewLoanModalProps) {
                     className="input pl-10"
                     required
                   >
-                    <option value="">Seleccionar deudor...</option>
+                    <option value="">Seleccionar cliente...</option>
                     {borrowers?.map(user => (
                       <option key={user.id} value={user.id}>
                         {user.full_name} {user.document_number ? `- ${user.document_number}` : ''}
@@ -411,11 +411,11 @@ export function NewLoanModal({ isOpen, onClose }: NewLoanModalProps) {
         </div>
       </div>
 
-      {/* Modal para crear nuevo deudor */}
+      {/* Modal para crear nuevo usuario */}
       <NewUserModal
         isOpen={showNewUserModal}
         onClose={() => setShowNewUserModal(false)}
-        defaultType="borrower"
+        defaultType="user"
       />
 
       {/* Modal para crear nueva propiedad */}

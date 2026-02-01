@@ -780,14 +780,14 @@ function AddInvestorModal({
 
   const remaining = requestedAmount - fundedAmount
 
-  // Obtener inversionistas disponibles
+  // Obtener inversionistas disponibles (todos los usuarios pueden invertir)
   const { data: investors, isLoading: loadingInvestors } = useQuery({
     queryKey: ['investors'],
     queryFn: async () => {
       const { data } = await supabase
         .from('users')
         .select('id, full_name, email, phone')
-        .in('user_type', ['investor', 'both', 'admin'])
+        .in('user_type', ['user', 'investor', 'both', 'admin'])
         .eq('is_active', true)
         .order('full_name')
       return data

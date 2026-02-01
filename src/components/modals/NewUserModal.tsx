@@ -6,10 +6,10 @@ import { useQueryClient } from '@tanstack/react-query'
 interface NewUserModalProps {
   isOpen: boolean
   onClose: () => void
-  defaultType?: 'investor' | 'borrower' | 'both' | 'admin'
+  defaultType?: 'user' | 'investor' | 'borrower' | 'both' | 'admin'
 }
 
-export function NewUserModal({ isOpen, onClose, defaultType = 'borrower' }: NewUserModalProps) {
+export function NewUserModal({ isOpen, onClose, defaultType = 'user' }: NewUserModalProps) {
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -20,7 +20,7 @@ export function NewUserModal({ isOpen, onClose, defaultType = 'borrower' }: NewU
     phone: '',
     document_type: 'CC',
     document_number: '',
-    user_type: defaultType as 'investor' | 'borrower' | 'both' | 'admin',
+    user_type: defaultType as 'user' | 'investor' | 'borrower' | 'both' | 'admin',
     address: '',
     city: 'Cúcuta',
     department: 'Norte de Santander',

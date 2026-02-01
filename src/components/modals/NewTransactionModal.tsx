@@ -287,17 +287,21 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
       // === DISTRIBUCIÓN AUTOMÁTICA ===
       // Si es un recaudo de intereses, crear automáticamente las transacciones de distribución
       if (transactionType === 'interest_payment' && selectedLoan) {
-        const totalRate = selectedLoan.monthly_interest_rate || (selectedLoan.annual_interest_rate / 12)
-        const proyectyRate = selectedLoan.proyecty_commission_rate || 0
-        const investorRate = selectedLoan.investor_return_rate || 0
+        // IMPORTANTE: Las tasas en BD están almacenadas como ANUALES
+        // Necesitamos convertirlas a mensuales para el cálculo proporcional
+        const annualTotalRate = selectedLoan.annual_interest_rate || 0
+        const annualProyectyRate = selectedLoan.proyecty_commission_rate || 0
+        const annualInvestorRate = selectedLoan.investor_return_rate || 0
         
-        // Calcular distribución proporcional
-        // Si totalRate = 2.4%, proyectyRate = 0.5%, investorRate = 1.9%
-        // Entonces de $1,000,000: Proyecty = (0.5/2.4)*1M, Investor = (1.9/2.4)*1M
+        // Calcular distribución proporcional basada en tasas anuales
+        // Si annualTotalRate = 28.8%, annualProyectyRate = 6%, annualInvestorRate = 22.8%
+        // Entonces de $1,400,000 recaudados: 
+        //   Proyecty = (6/28.8)*1.4M = $291,667
+        //   Investor = (22.8/28.8)*1.4M = $1,108,333
         
-        if (totalRate > 0) {
-          const proyectyAmount = Math.round((proyectyRate / totalRate) * amount)
-          const investorAmount = Math.round((investorRate / totalRate) * amount)
+        if (annualTotalRate > 0) {
+          const proyectyAmount = Math.round((annualProyectyRate / annualTotalRate) * amount)
+          const investorAmount = Math.round((annualInvestorRate / annualTotalRate) * amount)
           
           // Crear transacción de Comisión Proyecty
           if (proyectyAmount > 0) {
@@ -312,7 +316,7 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
                 principal_portion: 0,
                 commission_portion: proyectyAmount,
                 payment_method: 'internal',
-                description: `Comisión automática - ${((proyectyRate / totalRate) * 100).toFixed(1)}% del recaudo`,
+                description: `Comisión automática - ${((annualProyectyRate / annualTotalRate) * 100).toFixed(1)}% del recaudo`,
                 status: 'completed',
                 payment_date: new Date().toISOString(),
               }])
@@ -331,7 +335,7 @@ export function NewTransactionModal({ isOpen, onClose, preselectedLoan }: NewTra
                 principal_portion: 0,
                 commission_portion: 0,
                 payment_method: 'internal',
-                description: `Rendimiento automático - ${((investorRate / totalRate) * 100).toFixed(1)}% del recaudo`,
+                description: `Rendimiento automático - ${((annualInvestorRate / annualTotalRate) * 100).toFixed(1)}% del recaudo`,
                 status: 'completed',
                 payment_date: new Date().toISOString(),
               }])

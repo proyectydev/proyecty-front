@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { useNavigate, Navigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Navigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -12,10 +12,24 @@ export function LoginPage() {
   
   const { signIn, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [successMessage, setSuccessMessage] = useState('')
 
-  // Si ya está autenticado, redirigir al admin
+  // Detectar si viene de confirmar email
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed')
+    const type = searchParams.get('type')
+    if (confirmed === 'true' || type === 'signup') {
+      setSuccessMessage('¡Tu cuenta ha sido verificada! Ahora puedes iniciar sesión.')
+    }
+  }, [searchParams])
+
+  // Si ya está autenticado, redirigir según rol
   if (!authLoading && user) {
-    return <Navigate to="/admin" replace />
+    if (user.user_type === 'admin') {
+      return <Navigate to="/admin" replace />
+    }
+    return <Navigate to="/mi-cuenta" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +47,12 @@ export function LoginPage() {
       }
 
       if (loggedUser) {
-        navigate('/admin', { replace: true })
+        // Redirigir según tipo de usuario
+        if (loggedUser.user_type === 'admin') {
+          navigate('/admin', { replace: true })
+        } else {
+          navigate('/mi-cuenta', { replace: true })
+        }
       }
     } catch (err) {
       setError('Ocurrió un error. Por favor intenta de nuevo.')
@@ -56,6 +75,13 @@ export function LoginPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-green-700">{successMessage}</p>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />

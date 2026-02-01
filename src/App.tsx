@@ -21,6 +21,8 @@ import { TransactionsPage } from './pages/admin/TransactionsPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
 import { PropertiesPage } from './pages/admin/PropertiesPage'
 import { MortgageDetailPage } from './pages/admin/MortgageDetailPage'
+import { UnauthorizedPage } from './pages/UnauthorizedPage'
+import { MyAccountPage } from './pages/user/MyAccountPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,11 +65,24 @@ function App() {
               <Route path="reports" element={<ReportsPage />} />
             </Route>
 
-            {/* Redirect root to admin */}
-            <Route path="/" element={<Navigate to="/admin" replace />} />
+            {/* User Portal - para usuarios no admin */}
+            <Route
+              path="/mi-cuenta"
+              element={
+                <ProtectedRoute allowedRoles={['borrower', 'investor', 'admin']}>
+                  <MyAccountPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Unauthorized */}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+            {/* Redirect root to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
             
-            {/* 404 */}
-            <Route path="*" element={<Navigate to="/admin" replace />} />
+            {/* 404 - redirigir a login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

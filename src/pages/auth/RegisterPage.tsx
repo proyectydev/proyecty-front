@@ -81,7 +81,7 @@ export function RegisterPage() {
           data: {
             full_name: formData.full_name,
           },
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: `${window.location.origin}/login?confirmed=true`
         }
       })
 
